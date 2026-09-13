@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Panel — No Tocar</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: white;
+        }
+
+        .contenedor {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 30px;
+            margin: 5px 0 25px;
+        }
+
+        .volver-inicio {
+    display: block;
+    width: fit-content;
+    margin: 0 auto 20px;
+    padding: 9px 16px;
+    border: 1px solid #444;
+    border-radius: 7px;
+    color: #ddd;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: bold;
+    background: #1d1d1d;
+}
+
+.volver-inicio:hover {
+    background: #292929;
+    color: white;
+}
+
+        .estadisticas {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .tarjeta {
+            background: #1d1d1d;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+
+        .tarjeta h2 {
+            margin: 0 0 6px;
+            font-size: 15px;
+            color: #bbb;
+            font-weight: normal;
+        }
+
+        .numero {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .tabla-contenedor {
+            width: 100%;
+            overflow-x: auto;
+            background: #181818;
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #252525;
+            color: #ddd;
+            padding: 11px 10px;
+            text-align: left;
+            font-size: 13px;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 10px;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        /* ENTRADA DISPONIBLE */
+        tr.valida {
+            background: #173b27;
+        }
+
+        tr.valida:hover {
+            background: #1d4d32;
+        }
+
+        /* ENTRADA USADA */
+        tr.usada {
+            background: #4a1e1e;
+        }
+
+        tr.usada:hover {
+            background: #5a2525;
+        }
+
+        .estado {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .estado.valido {
+            color: #65e89a;
+        }
+
+        .estado.usado {
+            color: #ff7777;
+        }
+
+        .codigo {
+            font-family: monospace;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .hora {
+            white-space: nowrap;
+            color: #ddd;
+            font-family: monospace;
+        }
+
+        .cargando {
+            text-align: center;
+            padding: 30px;
+            color: #aaa;
+        }
+
+        @media (max-width: 600px) {
+
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 22px;
+                margin: 5px 0 15px;
+            }
+
+            .estadisticas {
+                gap: 6px;
+                margin-bottom: 12px;
+            }
+
+            .tarjeta {
+                padding: 9px 5px;
+                border-radius: 7px;
+            }
+
+            .tarjeta h2 {
+                font-size: 11px;
+                margin-bottom: 3px;
+            }
+
+            .numero {
+                font-size: 20px;
+            }
+
+            .tabla-contenedor {
+                border-radius: 7px;
+            }
+
+            th {
+                font-size: 11px;
+                padding: 8px 6px;
+            }
+
+            td {
+                font-size: 11px;
+                padding: 8px 6px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+    <h1>NO TOCAR — PANEL</h1>
+
+    <a href="index.html" class="volver-inicio">
+    ← VOLVER AL INICIO
+</a>
+
+    <div class="estadisticas">
+
+        <div class="tarjeta">
+            <h2>TOTAL</h2>
+            <div class="numero" id="total">-</div>
+        </div>
+
+        <div class="tarjeta">
+            <h2>USADAS</h2>
+            <div class="numero" id="usadas">-</div>
+        </div>
+
+        <div class="tarjeta">
+            <h2>DISPONIBLES</h2>
+            <div class="numero" id="disponibles">-</div>
+        </div>
+
+    </div>
+
+    <div class="tabla-contenedor">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Nº</th>
+<th>CÓDIGO</th>
+<th>ESTADO</th>
+<th>HORA DE ESCANEO</th>
+                </tr>
+            </thead>
+
+            <tbody id="tabla">
+
+                <tr>
+                    <td colspan="4" class="cargando">
+                        Cargando entradas...
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<script>
+
+async function cargarEstadisticas() {
+
+    try {
+
+        const respuesta = await fetch("/api/estadisticas");
+        const datos = await respuesta.json();
+
+        document.getElementById("total").textContent = datos.total;
+        document.getElementById("usadas").textContent = datos.usadas;
+        document.getElementById("disponibles").textContent = datos.disponibles;
+
+    } catch (error) {
+
+        console.error("Error cargando estadísticas:", error);
+
+    }
+
+}
+
+
+async function cargarEntradas() {
+
+    try {
+
+        const respuesta = await fetch("/api/entradas");
+        const entradas = await respuesta.json();
+
+        const tabla = document.getElementById("tabla");
+
+        tabla.innerHTML = "";
+
+        entradas.forEach(entrada => {
+
+            const fila = document.createElement("tr");
+
+            if (entrada.estado === "USADO") {
+                fila.classList.add("usada");
+            } else {
+                fila.classList.add("valida");
+            }
+
+            let hora = "-";
+
+            if (entrada.fecha) {
+
+                const fechaObjeto = new Date(entrada.fecha);
+
+                if (!isNaN(fechaObjeto)) {
+
+                    hora = fechaObjeto.toLocaleTimeString("es-AR", {
+                        timeZone: "America/Argentina/Catamarca",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: false
+                    });
+
+                } else {
+
+                    hora = entrada.fecha;
+
+                }
+            }
+
+            fila.innerHTML = `
+
+                <td>
+                    ${entrada.numero}
+                </td>
+
+                <td class="codigo">
+                    ${entrada.codigo}
+                </td>
+
+                <td class="estado ${
+                    entrada.estado === "USADO"
+                        ? "usado"
+                        : "valido"
+                }">
+
+                    ${
+                        entrada.estado === "USADO"
+                            ? "USADA"
+                            : "DISPONIBLE"
+                    }
+
+                </td>
+
+                <td class="hora">
+                    ${hora}
+                </td>
+
+            `;
+
+            tabla.appendChild(fila);
+
+        });
+
+    } catch (error) {
+
+        console.error("Error cargando entradas:", error);
+
+    }
+
+}
+
+
+cargarEstadisticas();
+cargarEntradas();
+
+setInterval(() => {
+    cargarEstadisticas();
+    cargarEntradas();
+}, 1000);
+
+</script>
+
+</body>
+</html>

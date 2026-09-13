@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Validación de entrada</title>
+
+   <style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, sans-serif;
+        background: #111;
+        color: white;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .contenedor {
+        width: 90%;
+        max-width: 500px;
+        text-align: center;
+    }
+
+    #resultado {
+        background: #222;
+        border-radius: 20px;
+        padding: 40px 25px;
+        transition: background 0.2s ease;
+    }
+
+    .icono {
+        font-size: 80px;
+        font-weight: bold;
+        line-height: 1;
+        margin-bottom: 15px;
+    }
+
+    h1 {
+        font-size: 34px;
+        margin: 20px 0;
+    }
+
+    h2 {
+        font-size: 24px;
+        margin: 15px 0;
+    }
+
+    p {
+        font-size: 20px;
+        margin: 12px 0;
+    }
+
+    .codigo {
+        font-family: monospace;
+        font-size: 18px;
+        margin-top: 20px;
+    }
+
+    .ingreso {
+        font-weight: bold;
+        margin-top: 30px;
+        font-size: 20px;
+    }
+
+
+    /* ENTRADA VÁLIDA */
+
+    .valida {
+        background: #16803c !important;
+    }
+
+
+    /* ENTRADA YA UTILIZADA */
+
+    .usada {
+        background: #b42318 !important;
+    }
+
+
+    /* ENTRADA INVÁLIDA */
+
+    .invalida {
+        background: #8b1e1e !important;
+    }
+
+
+    /* VALIDACIÓN NO HABILITADA */
+
+    .espera {
+        background: #24415c !important;
+    }
+
+
+    /* ERROR DE CONEXIÓN */
+
+    .error {
+        background: #b45f06 !important;
+    }
+
+
+    /* BOTÓN */
+
+    button {
+        width: 100%;
+        margin-top: 20px;
+        padding: 18px;
+
+        border: none;
+        border-radius: 12px;
+
+        font-size: 20px;
+        font-weight: bold;
+
+        cursor: pointer;
+
+        background: white;
+        color: #111;
+    }
+
+
+
+    /* CELULARES PEQUEÑOS */
+
+    @media (max-width: 400px) {
+
+        .contenedor {
+            width: 94%;
+        }
+
+        #resultado {
+            padding: 35px 20px;
+        }
+
+        .icono {
+            font-size: 70px;
+        }
+
+        h1 {
+            font-size: 28px;
+        }
+
+        h2 {
+            font-size: 21px;
+        }
+
+        p {
+            font-size: 18px;
+        }
+
+        .codigo {
+            font-size: 16px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+    <main class="contenedor">
+
+        <div id="resultado">
+            <div class="icono">...</div>
+            <h1>VERIFICANDO...</h1>
+        </div>
+
+        <audio id="sonidoCorrecto" src="/sonidos/correcto.wav" preload="auto"></audio>
+<audio id="sonidoIncorrecto" src="/sonidos/incorrecto.wav" preload="auto"></audio>
+
+        <button onclick="window.location.href='/scanner'">
+    ESCANEAR SIGUIENTE
+</button>
+
+    </main>
+
+    <script>
+
+        const codigo = window.location.pathname
+    .split("/")
+    .filter(Boolean)
+    .pop();
+
+const sonidoCorrecto = document.getElementById("sonidoCorrecto");
+const sonidoIncorrecto = document.getElementById("sonidoIncorrecto");
+
+function reproducirSonido(audio) {
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+}
+
+async function validar() {
+
+            try {
+
+                const respuesta = await fetch(
+                    `/api/validar/${encodeURIComponent(codigo)}`
+                );
+
+                const datos = await respuesta.json();
+
+                const resultado = document.getElementById("resultado");
+
+                // VALIDACIÓN TODAVÍA NO HABILITADA
+if (datos.motivo === "NO_HABILITADA") {
+
+    resultado.className = "espera";
+
+    resultado.innerHTML = `
+        <div class="icono">○</div>
+
+        <h1>VALIDACIÓN NO HABILITADA</h1>
+
+        <p>
+            Esta entrada podrá validarse
+            el día del show.
+        </p>
+
+        <p>
+            <strong>14 DE NOVIEMBRE DE 2026</strong>
+        </p>
+
+        <p class="codigo">
+            ${codigo}
+        </p>
+    `;
+
+}
+
+                // ENTRADA VÁLIDA
+                else if (datos.valida) {
+
+                    reproducirSonido(sonidoCorrecto);
+
+                    resultado.className = "valida";
+
+                    resultado.innerHTML = `
+                        <div class="icono">✓</div>
+
+                        <h1>ENTRADA VÁLIDA</h1>
+
+                        <h2>
+                            ENTRADA #${datos.entrada.numero}
+                        </h2>
+
+                        <p class="codigo">
+                            ${datos.entrada.codigo}
+                        </p>
+
+                        <p>
+                            ${datos.entrada.nombre || ""}
+                        </p>
+
+                        <p>
+                            ${datos.entrada.tipo || ""}
+                        </p>
+
+                        <p class="ingreso">
+                            INGRESO REGISTRADO
+                        </p>
+                    `;
+
+                }
+
+                // ENTRADA YA USADA
+                else if (datos.motivo === "USADO") {
+
+                    reproducirSonido(sonidoIncorrecto);
+
+                    resultado.className = "usada";
+
+                    resultado.innerHTML = `
+                        <div class="icono">✕</div>
+
+                        <h1>ENTRADA YA UTILIZADA</h1>
+
+                        <h2>
+                            ENTRADA #${datos.entrada.numero}
+                        </h2>
+
+                        <p class="codigo">
+                            ${datos.entrada.codigo}
+                        </p>
+
+                        <p>
+                            Esta entrada ya fue registrada.
+                        </p>
+                    `;
+
+                }
+
+                // CÓDIGO INEXISTENTE
+                else {
+
+                    reproducirSonido(sonidoIncorrecto);
+
+                    resultado.className = "invalida";
+
+                    resultado.innerHTML = `
+                        <div class="icono">✕</div>
+
+                        <h1>ENTRADA INVÁLIDA</h1>
+
+                        <p>
+                            El código no existe en el sistema.
+                        </p>
+
+                        <p class="codigo">
+                            ${codigo}
+                        </p>
+                    `;
+                }
+
+            } catch (error) {
+
+                document.getElementById("resultado").innerHTML = `
+                    <h1>ERROR DE CONEXIÓN</h1>
+
+                    <p>
+                        No se pudo conectar con el servidor.
+                    </p>
+                `;
+
+            }
+
+        }
+
+        validar();
+
+    </script>
+
+</body>
+
+</html>

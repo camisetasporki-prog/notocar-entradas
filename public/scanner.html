@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Escáner — No Tocar</title>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+
+            margin: 0;
+
+            min-height: 100vh;
+
+            font-family: Arial, sans-serif;
+
+            background: #111;
+
+            color: white;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+        }
+
+        .contenedor {
+    width: min(100%, 560px);
+    margin: 0 auto;
+    text-align: center;
+}
+
+        .titulo {
+
+            font-size: 30px;
+
+            font-weight: bold;
+
+            letter-spacing: 3px;
+
+            margin-bottom: 8px;
+
+        }
+
+        .subtitulo {
+
+            font-size: 16px;
+
+            opacity: 0.65;
+
+            margin-bottom: 25px;
+
+        }
+
+        #reader {
+
+            width: 100%;
+
+            overflow: hidden;
+
+            border-radius: 18px;
+
+            background: #222;
+
+        }
+
+        .instruccion {
+
+            margin-top: 22px;
+
+            font-size: 19px;
+
+            font-weight: bold;
+
+        }
+
+        .estado {
+
+            margin-top: 12px;
+
+            font-size: 15px;
+
+            opacity: 0.65;
+
+        }
+
+        button {
+
+            width: 100%;
+
+            margin-top: 25px;
+
+            padding: 18px;
+
+            border: none;
+
+            border-radius: 12px;
+
+            font-size: 19px;
+
+            font-weight: bold;
+
+            background: white;
+
+            color: #111;
+
+            cursor: pointer;
+
+        }
+
+
+        @media (max-width: 400px) {
+
+            .contenedor {
+                width: 94%;
+            }
+
+            .titulo {
+                font-size: 26px;
+            }
+
+            .instruccion {
+                font-size: 17px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <main class="contenedor">
+
+        <div class="titulo">
+            NO TOCAR
+        </div>
+
+        <div class="subtitulo">
+            CONTROL DE ENTRADAS
+        </div>
+
+
+        <div id="reader"></div>
+
+
+        <div class="instruccion">
+            Apuntá la cámara al código QR
+        </div>
+
+
+        <div
+            id="estado"
+            class="estado"
+        >
+            Iniciando cámara...
+        </div>
+
+
+        <button onclick="window.location.href='/'">
+    PÁGINA PRINCIPAL
+</button>
+
+    </main>
+
+
+    <script>
+
+    let scanner = null;
+
+    let procesando = false;
+
+
+    // =====================================================
+    // OBTENER CÓDIGO DEL QR
+    // =====================================================
+
+    function obtenerCodigo(texto) {
+
+        texto = texto.trim();
+
+
+        // Si el QR contiene una URL
+
+        if (
+            texto.startsWith("http://") ||
+            texto.startsWith("https://")
+        ) {
+
+            try {
+
+                const url = new URL(texto);
+
+                const partes =
+                    url.pathname
+                        .split("/")
+                        .filter(Boolean);
+
+
+                const indice =
+                    partes.indexOf("validar");
+
+
+                if (
+                    indice !== -1 &&
+                    partes[indice + 1]
+                ) {
+
+                    return partes[indice + 1];
+
+                }
+
+
+                if (partes.length > 0) {
+
+                    return partes[partes.length - 1];
+
+                }
+
+            }
+
+            catch (error) {
+
+                return null;
+
+            }
+
+        }
+
+
+        // Si el QR contiene directamente el código
+
+        return texto;
+
+    }
+
+
+    // =====================================================
+    // QR DETECTADO
+    // =====================================================
+
+    async function alDetectar(texto) {
+
+        if (procesando) {
+            return;
+        }
+
+
+        const codigo =
+            obtenerCodigo(texto);
+
+
+        if (!codigo) {
+
+            document.getElementById("estado")
+                .textContent =
+                "No se pudo leer el código.";
+
+            return;
+
+        }
+
+
+        procesando = true;
+
+
+        document.getElementById("estado")
+            .textContent =
+            "Código detectado. Verificando...";
+
+
+        try {
+
+            if (scanner) {
+
+                await scanner.stop();
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.log(
+                "No se pudo detener la cámara:",
+                error
+            );
+
+        }
+
+
+        // Ir directamente al validador
+
+        window.location.href =
+            "/validar/" +
+            encodeURIComponent(codigo);
+
+    }
+
+
+    // =====================================================
+    // ERRORES NORMALES DE LECTURA
+    // =====================================================
+
+    function errorDeLectura(error) {
+
+        // No hacemos nada.
+
+        // La librería genera errores constantemente
+        // mientras busca un código QR.
+
+    }
+
+
+    
+
+
+    // =====================================================
+    // CARGAR CÁMARAS DISPONIBLES
+    // =====================================================
+
+    async function obtenerCamaras() {
+
+    try {
+
+        await iniciarEscaner();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Error iniciando cámara:",
+            error
+        );
+
+        document.getElementById("estado")
+            .textContent =
+            "No se pudo iniciar la cámara.";
+
+    }
+
+}
+
+
+    // =====================================================
+    // INICIAR ESCÁNER
+    // =====================================================
+
+    async function iniciarEscaner() {
+
+    procesando = false;
+
+    const estado =
+        document.getElementById("estado");
+
+    estado.textContent =
+        "Iniciando cámara trasera...";
+
+    scanner =
+        new Html5Qrcode("reader");
+
+    try {
+
+        await scanner.start(
+
+            {
+                facingMode: "environment"
+            },
+
+            {
+
+                fps: 10,
+
+                qrbox: (viewfinderWidth, viewfinderHeight) => {
+
+                    const size = Math.floor(
+                        Math.min(
+                            viewfinderWidth,
+                            viewfinderHeight
+                        ) * 0.75
+                    );
+
+                    return {
+                        width: size,
+                        height: size
+                    };
+
+                }
+
+            },
+
+            alDetectar,
+
+            errorDeLectura
+
+        );
+
+        estado.textContent =
+            "Cámara lista. Buscando código QR...";
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Error iniciando cámara:",
+            error
+        );
+
+        estado.textContent =
+            "No se pudo iniciar la cámara trasera.";
+
+    }
+
+}
+
+
+
+
+    // =====================================================
+    // INICIAR TODO
+    // =====================================================
+
+    obtenerCamaras();
+
+</script>
+
+</body>
+
+</html>
