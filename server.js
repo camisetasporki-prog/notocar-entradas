@@ -13,7 +13,7 @@ const PORT = 3000;
 // Durante el desarrollo dejamos esto en true.
 // Cuando terminemos y publiquemos el sistema:
 // MODO_PRUEBA = false
-const MODO_PRUEBA = true;
+const MODO_PRUEBA = false;
 
 // El evento es el 14 de noviembre de 2026
 const FECHA_SHOW = "14/11/2026";
@@ -258,16 +258,14 @@ app.get("/api/validar/:codigo", (req, res) => {
     }).format(new Date());
 
 
-    if (fechaArgentina !== FECHA_SHOW) {
-
-        return res.json({
-            valida: false,
-            motivo: "NO_HABILITADA",
-            mensaje: "LA VALIDACIÓN TODAVÍA NO ESTÁ HABILITADA",
-            fecha: fechaArgentina
-        });
-
-    }
+    if (fechaArgentina.split("/").reverse().join("-") < "2026-11-14") {
+    return res.json({
+        valida: false,
+        motivo: "NO_HABILITADA",
+        mensaje: "LA VALIDACIÓN TODAVÍA NO ESTÁ HABILITADA",
+        fecha: fechaArgentina
+    });
+}
 
 
     // -------------------------------------------------
